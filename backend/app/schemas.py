@@ -30,10 +30,11 @@ class LaundryIn(BaseModel):
     description: str = Field(default="", max_length=1000)
     capacity: int = Field(default=30, ge=1, le=1000)
 
-    @field_validator("name", "description")
+    # обрезаем пробелы до проверки длины, чтобы название из одних пробелов не проходило
+    @field_validator("name", "description", mode="before")
     @classmethod
-    def strip(cls, v: str) -> str:
-        return v.strip()
+    def strip(cls, v):
+        return v.strip() if isinstance(v, str) else v
 
 
 class LaundryOut(BaseModel):

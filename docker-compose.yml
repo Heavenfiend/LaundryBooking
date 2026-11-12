@@ -16,7 +16,9 @@ services:
       retries: 20
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      target: runtime
     environment:
       DATABASE_URL: postgresql+psycopg://laundry:laundry@db:5432/laundry
       SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me}
@@ -26,6 +28,20 @@ services:
         condition: service_healthy
     ports:
       - "8000:8000" # Swagger: http://localhost:8000/docs
+
+  # Автотесты: docker compose run --rm tests
+  # Работают в отдельной базе laundry_test, рабочие данные не трогают.
+  tests:
+    profiles: ["test"]
+    build:
+      context: ./backend
+      target: test
+    environment:
+      DATABASE_URL: postgresql+psycopg://laundry:laundry@db:5432/laundry_test
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Moscow}
+    depends_on:
+      db:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
