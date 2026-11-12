@@ -1,0 +1,38 @@
+name: laundry
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: laundry
+      POSTGRES_PASSWORD: laundry
+      POSTGRES_DB: laundry
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U laundry -d laundry"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://laundry:laundry@db:5432/laundry
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-me}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Moscow}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000" # Swagger: http://localhost:8000/docs
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  pgdata:

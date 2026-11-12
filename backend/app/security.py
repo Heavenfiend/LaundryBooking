@@ -1,0 +1,32 @@
+from datetime import datetime, timedelta, timezone
+
+import bcrypt
+import jwt
+
+from .config import SECRET_KEY, TOKEN_TTL_HOURS
+
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode()[:72], bcrypt.gensalt()).decode()
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    try:
+        return bcrypt.checkpw(password.encode()[:72], password_hash.encode())
+    except ValueError:
+        return False
+
+
+def create_token(user_id: int) -> str:
+    payload = {
+        "sub": str(user_id),
+        "exp": datetime.now(timezone.utc) + timedelta(hours=TOKEN_TTL_HOURS),
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+
+
+def decode_token(token: str) -> int | None:
+    try:
+        return int(jwt.decode(token, SECRET_KEY, algorithms=["HS256"])["sub"])
+    except (jwt.PyJWTError, KeyError, ValueError):
+        return None
