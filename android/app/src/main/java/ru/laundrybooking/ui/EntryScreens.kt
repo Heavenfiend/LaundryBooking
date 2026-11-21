@@ -3,10 +3,12 @@ package ru.laundrybooking.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,6 +39,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -64,23 +69,33 @@ internal fun AuthScreen(busy: Boolean, model: LaundryViewModel) {
     }
 
     FormColumn {
-        Row(
-            modifier = Modifier.padding(top = 12.dp, bottom = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         ) {
-            LaundryLogo(Modifier.size(48.dp))
-            Text("LaundryBooking", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    LaundryLogo(Modifier.size(40.dp))
+                    Text("LaundryBooking", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                }
+                Text(
+                    if (register) "Создайте аккаунт" else "Войдите в аккаунт",
+                    modifier = Modifier.semantics { heading() },
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         }
-        Text(
-            if (register) "Создайте аккаунт" else "Войдите в аккаунт",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
         OutlinedTextField(
             value = username,
             onValueChange = { username = it },
             modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
             label = { Text("Логин") },
             enabled = !busy,
             singleLine = true,
@@ -91,6 +106,7 @@ internal fun AuthScreen(busy: Boolean, model: LaundryViewModel) {
                 value = name,
                 onValueChange = { name = it },
                 modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
                 label = { Text("Имя для расписания") },
                 enabled = !busy,
                 singleLine = true,
@@ -101,6 +117,7 @@ internal fun AuthScreen(busy: Boolean, model: LaundryViewModel) {
             value = password,
             onValueChange = { password = it },
             modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
             label = { Text("Пароль") },
             supportingText = if (register) ({ Text("От 6 символов") }) else null,
             enabled = !busy,
@@ -114,7 +131,12 @@ internal fun AuthScreen(busy: Boolean, model: LaundryViewModel) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { if (!busy) submit() }),
         )
-        Button(onClick = submit, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = submit,
+            enabled = !busy,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            shape = MaterialTheme.shapes.medium,
+        ) {
             Text(if (register) "Зарегистрироваться" else "Войти")
         }
         TextButton(
@@ -134,29 +156,41 @@ internal fun AuthScreen(busy: Boolean, model: LaundryViewModel) {
 
 @Composable
 internal fun HomeScreen(account: Account, laundries: List<Laundry>?, busy: Boolean, model: LaundryViewModel) {
+    val colors = MaterialTheme.colorScheme
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Text("Мои прачечные", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
-            Text(
-                account.displayName,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
-            )
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                Button(onClick = model::openCreate, enabled = !busy, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("Создать", modifier = Modifier.padding(start = 6.dp))
-                }
-                OutlinedButton(onClick = model::openFind, enabled = !busy, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("Найти по ID", modifier = Modifier.padding(start = 6.dp))
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = colors.primaryContainer,
+                contentColor = colors.onPrimaryContainer,
+            ) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(account.displayName, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "Мои прачечные",
+                        modifier = Modifier.semantics { heading() },
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    FlowRow(
+                        modifier = Modifier.padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Button(onClick = model::openCreate, enabled = !busy, shape = MaterialTheme.shapes.medium) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Text("Создать", modifier = Modifier.padding(start = 8.dp))
+                        }
+                        OutlinedButton(onClick = model::openFind, enabled = !busy, shape = MaterialTheme.shapes.medium) {
+                            Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Text("Найти по ID", modifier = Modifier.padding(start = 8.dp))
+                        }
+                    }
                 }
             }
         }
@@ -171,20 +205,26 @@ internal fun HomeScreen(account: Account, laundries: List<Laundry>?, busy: Boole
                 Card(
                     onClick = { model.openLaundry(laundry.code) },
                     enabled = !busy,
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                    shape = MaterialTheme.shapes.large,
+                    colors = CardDefaults.cardColors(containerColor = colors.surfaceContainerLowest),
                     border = CardDefaults.outlinedCardBorder(),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(laundry.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                         if (laundry.description.isNotEmpty()) {
                             Text(laundry.description, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         }
                         Text(
-                            "ID ${laundry.code}  ·  ${laundry.membershipLabel()}",
+                            "ID ${laundry.code}",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = colors.onSurfaceVariant,
                         )
+                        if (laundry.membership == Membership.PENDING) {
+                            StatusLabel(laundry.membershipLabel(), colors.tertiaryContainer, colors.onTertiaryContainer)
+                        } else {
+                            StatusLabel(laundry.membershipLabel(), colors.secondaryContainer, colors.onSecondaryContainer)
+                        }
                     }
                 }
             }
@@ -203,6 +243,7 @@ internal fun CreateLaundryScreen(busy: Boolean, create: (String, String, String)
             value = name,
             onValueChange = { name = it },
             modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
             label = { Text("Название") },
             enabled = !busy,
             singleLine = true,
@@ -212,6 +253,7 @@ internal fun CreateLaundryScreen(busy: Boolean, create: (String, String, String)
             value = description,
             onValueChange = { description = it },
             modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
             label = { Text("Описание (необязательно)") },
             enabled = !busy,
             minLines = 2,
@@ -222,6 +264,7 @@ internal fun CreateLaundryScreen(busy: Boolean, create: (String, String, String)
             value = capacity,
             onValueChange = { capacity = it },
             modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
             label = { Text("Лимит участников") },
             enabled = !busy,
             singleLine = true,
@@ -233,7 +276,8 @@ internal fun CreateLaundryScreen(busy: Boolean, create: (String, String, String)
                 create(name, description, capacity)
             },
             enabled = !busy,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            shape = MaterialTheme.shapes.medium,
         ) {
             Text("Создать прачечную")
         }
@@ -253,6 +297,7 @@ internal fun FindLaundryScreen(busy: Boolean, find: (String) -> Unit) {
             value = code,
             onValueChange = { code = it },
             modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
             label = { Text("ID прачечной") },
             supportingText = { Text("Шесть букв или цифр из приглашения") },
             enabled = !busy,
@@ -264,7 +309,12 @@ internal fun FindLaundryScreen(busy: Boolean, find: (String) -> Unit) {
             ),
             keyboardActions = KeyboardActions(onSearch = { if (!busy) submit() }),
         )
-        Button(onClick = submit, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Найти") }
+        Button(
+            onClick = submit,
+            enabled = !busy,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+            shape = MaterialTheme.shapes.medium,
+        ) { Text("Найти") }
     }
 }
 
@@ -272,9 +322,16 @@ internal fun FindLaundryScreen(busy: Boolean, find: (String) -> Unit) {
 private fun FormColumn(content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         content = content,
     )
+}
+
+@Composable
+internal fun StatusLabel(label: String, color: Color, contentColor: Color) {
+    Surface(shape = MaterialTheme.shapes.small, color = color, contentColor = contentColor) {
+        Text(label, Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium)
+    }
 }
 
 @Composable

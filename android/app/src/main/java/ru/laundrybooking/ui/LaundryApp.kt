@@ -5,7 +5,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,9 +17,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -49,6 +48,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.io.IOException
@@ -61,8 +61,11 @@ private val LightColors = lightColorScheme(
     primaryContainer = Color(0xFFD9F1E9),
     onPrimaryContainer = Color(0xFF083A34),
     secondary = Color(0xFF4C635D),
+    onSecondary = Color.White,
     secondaryContainer = Color(0xFFE2EDE8),
     onSecondaryContainer = Color(0xFF253A33),
+    tertiary = Color(0xFF735923),
+    onTertiary = Color.White,
     tertiaryContainer = Color(0xFFF7EBD3),
     onTertiaryContainer = Color(0xFF503A15),
     background = Color(0xFFF6FAF8),
@@ -74,6 +77,7 @@ private val LightColors = lightColorScheme(
     onSurfaceVariant = Color(0xFF435651),
     outline = Color(0xFF6D807A),
     outlineVariant = Color(0xFFC4D3CD),
+    surfaceVariant = Color(0xFFE0EBE5),
 )
 
 private val DarkColors = darkColorScheme(
@@ -81,8 +85,12 @@ private val DarkColors = darkColorScheme(
     onPrimary = Color(0xFF003730),
     primaryContainer = Color(0xFF174B42),
     onPrimaryContainer = Color(0xFFAAEEE1),
+    secondary = Color(0xFFB5CCC1),
+    onSecondary = Color(0xFF21362E),
     secondaryContainer = Color(0xFF354A43),
     onSecondaryContainer = Color(0xFFD8E9E3),
+    tertiary = Color(0xFFE4C68E),
+    onTertiary = Color(0xFF41300E),
     tertiaryContainer = Color(0xFF58451F),
     onTertiaryContainer = Color(0xFFF7E3B5),
     background = Color(0xFF101C19),
@@ -94,15 +102,16 @@ private val DarkColors = darkColorScheme(
     onSurfaceVariant = Color(0xFFBACBC3),
     outline = Color(0xFF899C94),
     outlineVariant = Color(0xFF45574F),
+    surfaceVariant = Color(0xFF30443B),
 )
 
 @Composable
-internal fun LaundryTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors, content = content)
+internal fun LaundryTheme(dark: Boolean, content: @Composable () -> Unit) {
+    MaterialTheme(colorScheme = if (dark) DarkColors else LightColors, content = content)
 }
 
 @Composable
-internal fun LaundryApp(model: LaundryViewModel) {
+internal fun LaundryApp(model: LaundryViewModel, theme: ThemeMode, selectTheme: (ThemeMode) -> Unit) {
     val state by model.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val exportPicker = rememberLauncherForActivityResult(
@@ -134,7 +143,7 @@ internal fun LaundryApp(model: LaundryViewModel) {
                 busy = state.busy,
                 back = model::backToHome,
                 refresh = model::refresh,
-                logout = model::logout,
+                openSettings = model::openSettings,
                 share = { code ->
                     val send = Intent(Intent.ACTION_SEND).apply {
                         type = "text/plain"
@@ -161,6 +170,7 @@ internal fun LaundryApp(model: LaundryViewModel) {
                         AuthState.SignedOut -> AuthScreen(state.busy, model)
                         is AuthState.SignedIn -> when (val page = state.page) {
                             Page.Home -> HomeScreen(auth.account, state.laundries, state.busy, model)
+                            Page.Settings -> SettingsScreen(auth.account, theme, selectTheme, state.busy, model::logout)
                             Page.Create -> CreateLaundryScreen(state.busy, model::create)
                             Page.Find -> FindLaundryScreen(state.busy, model::find)
                             is Page.Details -> key(page.laundry.code) {
@@ -181,7 +191,7 @@ private fun LaundryTopBar(
     busy: Boolean,
     back: () -> Unit,
     refresh: () -> Unit,
-    logout: () -> Unit,
+    openSettings: () -> Unit,
     share: (String) -> Unit,
 ) {
     TopAppBar(
@@ -192,8 +202,9 @@ private fun LaundryTopBar(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     LaundryLogo(Modifier.size(32.dp))
-                    Text("LaundryBooking", fontWeight = FontWeight.SemiBold)
+                    Text("LaundryBooking", fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
+                Page.Settings -> Text("Настройки")
                 Page.Create -> Text("Новая прачечная")
                 Page.Find -> Text("Поиск прачечной")
                 is Page.Details -> Text("Прачечная")
@@ -218,8 +229,8 @@ private fun LaundryTopBar(
                 }
             }
             if (page == Page.Home) {
-                IconButton(onClick = logout, enabled = !busy) {
-                    Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Выйти из аккаунта")
+                IconButton(onClick = openSettings, enabled = !busy) {
+                    Icon(Icons.Default.Settings, contentDescription = "Настройки")
                 }
             }
         },

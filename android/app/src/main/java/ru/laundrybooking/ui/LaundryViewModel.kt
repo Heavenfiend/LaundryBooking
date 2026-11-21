@@ -35,6 +35,7 @@ internal sealed interface AuthState {
 
 internal sealed interface Page {
     data object Home : Page
+    data object Settings : Page
     data object Create : Page
     data object Find : Page
     data class Details(
@@ -107,10 +108,17 @@ internal class LaundryViewModel(
 
     fun openCreate() = navigate(Page.Create)
     fun openFind() = navigate(Page.Find)
+    fun openSettings() = navigate(Page.Settings)
 
-    fun backToHome() = authenticated { token ->
-        mutableState.update { it.copy(page = Page.Home) }
-        loadLaundries(token)
+    fun backToHome() {
+        if (state.value.page == Page.Settings) {
+            navigate(Page.Home)
+            return
+        }
+        authenticated { token ->
+            mutableState.update { it.copy(page = Page.Home) }
+            loadLaundries(token)
+        }
     }
 
     fun refresh() = authenticated { token ->

@@ -14,10 +14,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PrimaryScrollableTabRow
@@ -35,6 +41,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -117,12 +125,13 @@ internal fun LaundryDetailsScreen(page: Page.Details, busy: Boolean, model: Laun
             title = { Text("Отменить бронь?") },
             text = { Text(booking.fullTimeRange()) },
             confirmButton = {
-                Button(onClick = {
-                    bookingToCancel = null
-                    model.cancelBooking(booking)
-                }) {
-                    Text("Подтвердить отмену")
-                }
+                TextButton(
+                    onClick = {
+                        bookingToCancel = null
+                        model.cancelBooking(booking)
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) { Text("Подтвердить отмену") }
             },
             dismissButton = {
                 TextButton(onClick = { bookingToCancel = null }) { Text("Оставить") }
@@ -143,9 +152,19 @@ private fun MembershipScreen(laundry: Laundry, busy: Boolean, model: LaundryView
             Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (laundry.membership == Membership.PENDING) {
                     EmptyPanel("Заявка отправлена", "Расписание откроется после одобрения заявки.")
-                    Button(onClick = model::refresh, enabled = !busy) { Text("Проверить статус") }
+                    FilledTonalButton(
+                        onClick = model::refresh,
+                        enabled = !busy,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Проверить статус") }
                 } else {
-                    Button(onClick = model::join, enabled = !busy) { Text("Подать заявку") }
+                    Button(
+                        onClick = model::join,
+                        enabled = !busy,
+                        shape = MaterialTheme.shapes.medium,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Подать заявку") }
                 }
             }
         }
@@ -154,31 +173,31 @@ private fun MembershipScreen(laundry: Laundry, busy: Boolean, model: LaundryView
 
 @Composable
 private fun LaundryHeading(laundry: Laundry) {
-    Column(
+    val colors = MaterialTheme.colorScheme
+    Surface(
         Modifier.fillMaxWidth().padding(start = 20.dp, top = 4.dp, end = 20.dp, bottom = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        shape = MaterialTheme.shapes.large,
+        color = colors.primaryContainer,
+        contentColor = colors.onPrimaryContainer,
     ) {
-        Text(
-            laundry.name,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        if (laundry.description.isNotBlank()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                laundry.description,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                laundry.name,
+                modifier = Modifier.semantics { heading() },
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-        }
-        SelectionContainer {
-            Text(
-                "ID ${laundry.code}  ·  ${laundry.memberCount}/${laundry.capacity} участников",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (laundry.description.isNotBlank()) {
+                Text(laundry.description, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            SelectionContainer {
+                Text(
+                    "ID ${laundry.code}  ·  ${laundry.memberCount}/${laundry.capacity} участников",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
         }
     }
 }
@@ -213,6 +232,10 @@ private fun ScheduleScreen(
                 FilterChip(
                     selected = date == day,
                     onClick = { selectDay(date.toString()) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
                     label = {
                         Text(
                             when (date) {
@@ -267,24 +290,15 @@ private fun SlotCard(
     val colors = MaterialTheme.colorScheme
     val own = slot.bookings.any { it.mine }
     val occupied = slot.bookings.isNotEmpty()
-    val background = when {
-        own -> colors.primaryContainer
-        occupied -> colors.tertiaryContainer
-        else -> colors.surfaceContainerLowest
-    }
-    val foreground = when {
-        own -> colors.onPrimaryContainer
-        occupied -> colors.onTertiaryContainer
-        else -> colors.onSurface
-    }
+    val past = !occupied && !slot.canBook
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = background,
-        contentColor = foreground,
+        color = if (past) colors.surfaceContainerLow else colors.surfaceContainerLowest,
+        contentColor = if (past) colors.onSurfaceVariant else colors.onSurface,
         shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(1.dp, if (occupied) background else colors.outlineVariant),
+        border = BorderStroke(1.dp, colors.outlineVariant),
     ) {
-        Column(Modifier.padding(horizontal = 14.dp, vertical = 5.dp)) {
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -296,17 +310,15 @@ private fun SlotCard(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
-                if (slot.canBook) {
-                    TextButton(onClick = { book(slot) }, enabled = !busy) { Text("Забронировать") }
-                } else {
-                    Text(
-                        when {
-                            own -> "Ваша бронь"
-                            occupied -> "Занято"
-                            else -> "Время прошло"
-                        },
-                        style = MaterialTheme.typography.labelLarge,
-                    )
+                when {
+                    slot.canBook -> FilledTonalButton(
+                        onClick = { book(slot) },
+                        enabled = !busy,
+                        shape = MaterialTheme.shapes.medium,
+                    ) { Text("Забронировать") }
+                    own -> StatusLabel("Ваша бронь", colors.primaryContainer, colors.onPrimaryContainer)
+                    occupied -> StatusLabel("Занято", colors.tertiaryContainer, colors.onTertiaryContainer)
+                    else -> Text("Время прошло", style = MaterialTheme.typography.labelLarge)
                 }
             }
             slot.bookings.forEach { booking ->
@@ -328,6 +340,7 @@ private fun SlotCard(
 @Composable
 private fun MyBookings(schedule: Schedule, busy: Boolean, cancel: (Booking) -> Unit) {
     val upcoming = remember(schedule) { schedule.myBookings() }
+    val colors = MaterialTheme.colorScheme
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp),
@@ -340,15 +353,26 @@ private fun MyBookings(schedule: Schedule, busy: Boolean, cancel: (Booking) -> U
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = colors.surfaceContainerLow,
             ) {
-                Column(Modifier.padding(start = 14.dp, top = 12.dp, end = 14.dp, bottom = 4.dp)) {
-                    Text(booking.fullTimeRange(), style = MaterialTheme.typography.titleMedium)
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    Row(
+                        modifier = Modifier.padding(top = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Default.DateRange, contentDescription = null, tint = colors.primary)
+                        Text(booking.fullTimeRange(), style = MaterialTheme.typography.titleMedium)
+                    }
                     if (booking.note.isNotEmpty()) {
                         Text(booking.note, modifier = Modifier.padding(top = 4.dp))
                     }
-                    TextButton(onClick = { cancel(booking) }, enabled = !busy) { Text("Отменить бронь") }
+                    TextButton(
+                        onClick = { cancel(booking) },
+                        enabled = !busy,
+                        modifier = Modifier.align(Alignment.End),
+                        colors = ButtonDefaults.textButtonColors(contentColor = colors.error),
+                    ) { Text("Отменить бронь") }
                 }
             }
         }
@@ -384,7 +408,11 @@ private fun RequestsScreen(requests: List<JoinRequest>?, busy: Boolean, approve:
                         Text(request.displayName, style = MaterialTheme.typography.titleMedium)
                         Text("@${request.username}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Button(onClick = { approve(request.userId) }, enabled = !busy) { Text("Одобрить") }
+                        FilledTonalButton(
+                            onClick = { approve(request.userId) },
+                            enabled = !busy,
+                            shape = MaterialTheme.shapes.medium,
+                        ) { Text("Одобрить") }
                 }
             }
         }
@@ -408,6 +436,7 @@ private fun BookingDialog(slot: HourlySlot, dismiss: () -> Unit, confirm: (Strin
     val noteTooLong = note.trim().let { it.codePointCount(0, it.length) > 200 }
     AlertDialog(
         onDismissRequest = dismiss,
+        icon = { Icon(Icons.Default.DateRange, contentDescription = null) },
         title = { Text("Забронировать час?") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -416,15 +445,22 @@ private fun BookingDialog(slot: HourlySlot, dismiss: () -> Unit, confirm: (Strin
                     value = note,
                     onValueChange = { note = it },
                     modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
                     label = { Text("Заметка (необязательно)") },
                     maxLines = 3,
                     isError = noteTooLong,
-                    supportingText = if (noteTooLong) ({ Text("До 200 символов") }) else null,
+                    supportingText = {
+                        Text(if (noteTooLong) "До 200 символов" else "Заметку увидят участники прачечной")
+                    },
                 )
             }
         },
         confirmButton = {
-            Button(onClick = { confirm(note) }, enabled = !noteTooLong) { Text("Подтвердить") }
+            Button(
+                onClick = { confirm(note) },
+                enabled = !noteTooLong,
+                shape = MaterialTheme.shapes.medium,
+            ) { Text("Подтвердить") }
         },
         dismissButton = { TextButton(onClick = dismiss) { Text("Назад") } },
     )
